@@ -1,6 +1,10 @@
 from flask import Flask, request, render_template, jsonify
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from newspaper import Article
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from bs4 import BeautifulSoup
+import time
 import torch
 
 app = Flask(__name__)
@@ -12,14 +16,38 @@ model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 model.eval()
 
 def crawl_content(domain):
-    url = f"http://{domain}"
+    # Nếu domain không bắt đầu bằng http:// hoặc https:// thì thêm http://
+    if not domain.startswith(("http://", "https://")):
+        domain = "http://" + domain
+
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--window-size=1920x1080")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
     try:
-        article = Article(url)
-        article.download()
-        article.parse()
-        return article.text
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get(domain)
+
+        time.sleep(3)  # Chờ trang tải JS
+
+        html = driver.page_source
+        driver.quit()
+
+        soup = BeautifulSoup(html, 'html.parser')
+
+        for tag in soup(['script', 'style', 'header', 'footer', 'nav', 'aside']):
+            tag.decompose()
+
+        texts = soup.stripped_strings
+        content = '\n'.join(texts)
+
+        return content
+
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error crawling {domain} with Selenium: {e}")
         return ""
 
 def segment_content(text, max_length=256, stride=128):
