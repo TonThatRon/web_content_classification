@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Content Classifier</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --danger-color: #f72585;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --gray-color: #6c757d;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-color: #f9f9fb;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--gray-color);
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-color);
+        }
+
+        input[type=text] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type=text]:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.25);
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .result-container {
+            margin-top: 30px;
+            border-top: 1px solid #e9ecef;
+            padding-top: 30px;
+        }
+
+        .result {
+            background-color: #e7f5ff;
+            color: #1864ab;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            border-left: 5px solid var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .segments-container h3 {
+            color: var(--danger-color);
+            margin: 20px 0 15px 0;
+            font-size: 1.3rem;
+        }
+
+        .segment {
+            background-color: #fff5f7;
+            border-left: 5px solid var(--danger-color);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: var(--border-radius);
+            white-space: pre-wrap;
+            font-size: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            color: var(--gray-color);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Website Content Classifier</h1>
+            <p class="subtitle">Phân tích và phân loại nội dung website để phát hiện nội dung không phù hợp</p>
+        </header>
+
+        <form method="post">
+            <div class="form-group">
+                <label for="domain">Nhập tên miền để kiểm tra:</label>
+                <input type="text" id="domain" name="domain" placeholder="Ví dụ: vnexpress.net" required>
+            </div>
+
+            <button type="submit" class="btn">Kiểm tra ngay</button>
+        </form>
+
+        {% if result %}
+        <div class="result-container">
+            <div class="result">{{ result }}</div>
+
+            {% if flagged_segments %}
+            <div class="segments-container">
+                <h3>Các đoạn bị đánh dấu (Nhãn = 1):</h3>
+                {% for segment in flagged_segments %}
+                <div class="segment">{{ segment }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Website Content Classifier - Công cụ phân tích nội dung website</p>
+    </div>
+</body>
+</html>
