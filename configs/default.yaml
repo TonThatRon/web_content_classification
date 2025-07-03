@@ -1,0 +1,3 @@
+dict_path:
+  dict_sensitive_word: "data/dict_check_type (2).xlsx"
+  dict_tld_gia_re: "data/tld_gia_re.csv"

@@ -173,6 +173,25 @@
         {% if result %}
         <div class="result-container">
             <div class="result">{{ result }}</div>
+            {% if lexical_info %}
+            <div class="segments-container">
+                <h3>Đặc trưng lexical của domain:</h3>
+                <ul style="line-height: 1.8">
+                    <li><strong>Độ dài domain:</strong> {{ lexical_info.length }}</li>
+                    <li><strong>Entropy:</strong> {{ lexical_info.entropy }}</li>
+                    <li><strong>% chữ số:</strong> {{ lexical_info.percent_number }}</li>
+                    <li><strong>Số ký tự đặc biệt:</strong> {{ lexical_info.special_chars }}</li>
+                    <li><strong>Là tên miền rẻ:</strong> {{ 'Có' if lexical_info.cheap_tld else 'Không' }}</li>
+                    <li><strong>Phát hiện từ nhạy cảm:</strong> 
+                        {% if lexical_info.word_type != "Chưa xác định" %}
+                            {{ lexical_info.word }} ({{ lexical_info.word_type }})
+                        {% else %}
+                            Không phát hiện
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
 
             {% if flagged_segments %}
             <div class="segments-container">
