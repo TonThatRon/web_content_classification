@@ -1,15 +1,18 @@
-from flask import Flask, request, render_template
-from transformers import AutoTokenizer, AutoConfig
-from models.lexical_domain_content import PhobertLexicalContent
-from models.lexical import get_vector_lexical
 import torch
+from transformers import AutoTokenizer, AutoConfig
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
+from fastmcp import FastMCP
+from fastmcp.server.http import create_sse_app
+import asyncio
+from models.lexical_domain_content import PhobertLexicalContent
+from models.lexical import get_vector_lexical
 from models.lexical_extractor import get_combined_lexical_vector
 
-app = Flask(__name__)
+# Initialize FastMCP
+mcp = FastMCP("WebClassifierTools")
 
 # Load Tokenizers
 tokenizer_phobert = AutoTokenizer.from_pretrained("phunganhsang/PhoBert_Lexical_Dataset55K")
@@ -21,11 +24,14 @@ content_config = AutoConfig.from_pretrained("RonTon05/PhoBert_content_48K")
 
 # Load Model
 model = PhobertLexicalContent(phobert_config, content_config)
-model.load_state_dict(torch.load("weights/pholexicalcontent_state_dict_30_06.pt", map_location="cpu"))
+model.load_state_dict(torch.load("models/weights/pholexicalcontent_state_dict_30_06.pt", map_location="cpu"))
 model.eval()
 
-# Crawl content from URL
-def crawl_content(domain):
+# Utility Functions
+def crawl_content(domain: str) -> str:
+    """
+    Crawl content from a given URL, removing unnecessary tags like script, style, etc.
+    """
     if not domain.startswith(("http://", "https://")):
         domain = "http://" + domain
 
@@ -56,8 +62,10 @@ def crawl_content(domain):
             except:
                 pass
 
-# Segment content for classification
-def segment_content(text, max_length=200, stride=100):
+def segment_content(text: str, max_length: int = 200, stride: int = 100) -> list:
+    """
+    Segment text into chunks for classification.
+    """
     tokens = tokenizer_phobert.encode(text, truncation=False)
     segments = []
     for i in range(0, len(tokens), stride):
@@ -67,8 +75,10 @@ def segment_content(text, max_length=200, stride=100):
         segments.append(tokenizer_phobert.decode(chunk, skip_special_tokens=True))
     return segments
 
-# Classify using both lexical and content features
-def classify_segments(domain, segments):
+def classify_segments(domain: str, segments: list) -> dict:
+    """
+    Classify segments using lexical and content features.
+    """
     domain_base = domain.split("//")[-1].split("/")[0].split(":")[0]
     lexical = get_vector_lexical(domain_base, return_all=True)
     lexical_vector = get_combined_lexical_vector(domain_base)
@@ -106,34 +116,42 @@ def classify_segments(domain, segments):
         "lexical_info": lexical
     }
 
+# FastMCP Tool
+@mcp.tool("classify_website")
+async def classify_website(domain: str) -> dict:
+    """
+    Classify a website based on its content and lexical features.
+    Returns classification label, flagged segments, and lexical information.
+    """
+    content = crawl_content(domain)
+    if not content:
+        return {
+            "result": f"Không thể crawl nội dung từ '{domain}'",
+            "label": None,
+            "flagged_segments": [],
+            "lexical_info": None
+        }
 
+    segments = segment_content(content)
+    result_dict = classify_segments(domain, segments)
+    label = result_dict["label"]
+    flagged_segments = result_dict["flagged_segments"]
+    lexical_info = result_dict["lexical_info"]
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    result = None
-    flagged_segments = []
-    lexical_info = None
+    return {
+        "result": f"Domain '{domain}' được phân loại là: {'TÍNH NHIỆM THẤP' if label == 1 else 'BÌNH THƯỜNG'}",
+        "label": label,
+        "flagged_segments": flagged_segments,
+        "lexical_info": lexical_info
+    }
 
-    if request.method == "POST":
-        domain = request.form.get("domain")
-        content = crawl_content(domain)
-        if content:
-            segments = segment_content(content)
-            result_dict = classify_segments(domain, segments)
-            label = result_dict["label"]
-            flagged_segments = result_dict["flagged_segments"]
-            lexical_info = result_dict["lexical_info"]
-            result = f"Domain '{domain}' được phân loại là: {'TÍNH NHIỆM THẤP' if label == 1 else 'BÌNH THƯỜNG'}"
-        else:
-            result = f"Không thể crawl nội dung từ '{domain}'"
-
-    return render_template(
-        "index.html",
-        result=result,
-        flagged_segments=flagged_segments,
-        lexical_info=lexical_info
-    )
-
+# Create SSE app
+app = create_sse_app(
+    mcp,
+    message_path="/message",  # POST JSON endpoint
+    sse_path="/sse"          # SSE endpoint for clients
+)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)

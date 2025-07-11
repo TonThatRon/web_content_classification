@@ -9,7 +9,7 @@ from utils import normalize_domain, normalize_domain_for_lexical, one_hot_encode
 
 # === Cấu hình ===
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-LEXICAL_MODEL_PATH = 'path/to/your/combine_model_state_dict.pt'
+LEXICAL_MODEL_PATH = 'models\weight\pholexicalcontent_state_dict_30_06.pt'
 
 # === Load model ===
 phobert_config_path = 'phunganhsang/PhoBert_Lexical_Dataset55K'
